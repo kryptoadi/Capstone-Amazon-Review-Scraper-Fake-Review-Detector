@@ -1,92 +1,185 @@
-# 📦 Amazon Review Scraper & Fake Review Detector
+Amazon Review Authenticity Detector
+A complete machine learning system built to identify potentially AI-generated or inauthentic reviews on Amazon using deep learning and real-time Kafka pipelines.
 
-This project provides a complete pipeline to scrape product reviews from Amazon, process the data, and detect fake or AI-generated reviews using advanced machine learning and deep learning techniques.
+🧱 System Overview
+This project follows a two-phase pipeline architecture for review scraping, feature extraction, and fraud detection:
 
-## 🚀 Features
+📦 Phase 1 – Batch Data Ingestion & Model Training
+Data Collection: Scrapes reviews via Amazon Scraper (Apify API) using ASINs
 
-- Scrapes Amazon reviews using product ASINs  
-- Sends real-time review data to Apache Kafka  
-- Converts JSON to structured CSV  
-- Trains ensemble models (Neural Network, XGBoost, Random Forest, and others)  
-- Supports pseudo-labeling and class balancing  
-- Visualizes results with IEEE-style plots  
-- Detects suspicious review patterns using NLP and linguistic analysis  
+Preprocessing: Cleans and converts raw JSON reviews into structured data
 
-## 📂 Project Structure
+Feature Engineering: TF-IDF vectors + linguistic signals
 
-├── amazon_scraper.py           # Review scraping and Kafka integration  
-├── combine_datasets.py         # Merges labeled & unlabeled data  
-├── main.py                     # Central control (train, test, serve)  
-├── deploy.sh                   # Docker-based deployment script  
-├── docker-compose.yml          # Kafka and Zookeeper containers  
-├── product_asins.txt           # List of ASINs to scrape  
-├── requirements.txt            # Python dependencies  
-├── .env.example                # Sample environment file  
-└── Data/  
-    ├── Scraped_data/           # Raw and converted review data  
-    └── Training_data/          # Combined datasets for model training  
+Model Training: Trains various classifiers including Neural Networks, XGBoost, and Random Forest
 
-## 🧠 Model Architecture
+Offline Evaluation: Evaluates all models on static test data
 
-- Text Processing: TF-IDF, sentence complexity, vocabulary diversity, etc.  
-- Models Used:  
-  - Multilayer Neural Network  
-  - XGBoost Classifier  
-  - Random Forest  
-  - SVM, KNN, Logistic Regression, Naive Bayes (optional)  
-- Ensemble Voting for final prediction  
+🔄 Phase 2 – Real-time Stream Processing with Kafka
+Streaming Setup: Kafka handles real-time review ingestion
 
-## 🔎 Linguistic Features Analyzed
+Live Feature Extraction: Extracts features on-the-fly
 
-- Vocabulary uniqueness  
-- Repetitive patterns  
-- Sentiment consistency  
-- Use of filler/extreme words  
-- Formulaic phrases (e.g. "highly recommend", "excellent quality")  
+Online Prediction: Applies trained ensemble models to streamed reviews
 
-## 🛠️ How to Run
+Live Feedback: Stores prediction confidence and metrics for monitoring
 
-Step 1: Install dependencies  
-pip install -r requirements.txt  
+🔍 Key Capabilities
+⚙️ Smart Preprocessing
+Custom n-gram TF-IDF vectorizer
 
-Step 2: Set up environment variables  
-Create a `.env` file using `.env.example` and add:  
-APIFY_API_KEY=your_apify_token_here  
-KAFKA_BOOTSTRAP_SERVERS=localhost:39092  
+Filters noise and filler terms
 
-Step 3: Deploy Kafka services  
-./deploy.sh up  
+Measures vocabulary richness, writing complexity, sentiment shift
 
-Step 4: Run the scraper and send reviews to Kafka  
-python main.py --mode test --run-scraper  
+Supports dataset balancing and augmentation
 
-Step 5: Train the model  
-python main.py --mode train --dataset Data/Training_data/combined_dataset.csv  
+🤖 Modular Model Design
+Deep neural architecture: 512 → 256 → 128 → 64
 
-Step 6: Evaluate or serve predictions  
-python main.py --mode test  
-python main.py --mode serve  
+Integrated dropout and batch norm layers
 
-## 📊 Output Examples
+Uses weighted loss for class imbalance
 
-- results/training/feature_importance_ieee.png – Top review features  
-- results/training/roc_curves_ieee.png – ROC curves for all models  
-- results/testing/test_results.csv – Label predictions and confidence  
+Early stopping and checkpointing enabled
 
-## 🧪 Fake Review Detection Logic
+Ensemble support to boost generalization
 
-The final prediction combines:  
-- Statistical review features  
-- NLP signals (sentiment, repetition, caps ratio)  
-- Ensemble of ML classifiers  
-- Threshold optimization to reduce false positives  
+⚡ Real-time Review Monitoring
+Kafka-based live data ingestion
 
-## 💡 Use Cases
+Real-time review scoring and labeling
 
-- E-commerce fraud detection  
-- Marketplace moderation tools  
-- Academic research on generative content  
+Dashboard-ready JSON outputs
 
-## ⚠️ Disclaimer
+Modular Kafka consumer/producer logic
 
-This project is for educational and research purposes only. Use responsibly and respect the terms of service of websites you scrape.
+🚀 How to Use
+1. Setup the Environment
+
+
+
+pip install -r requirements.txt
+docker-compose up -d  # Starts Kafka, Zookeeper, etc.
+2. Collect & Train (Phase 1)
+
+
+
+python main.py --mode train --run-scraper      # Scrape and train
+python main.py --mode train                    # Only training
+3. Evaluate Model Performance
+
+
+
+python main.py --mode test
+python main.py --mode test --run-scraper       # Test on new scraped data
+4. Real-time Pipeline (Phase 2)
+
+
+
+python main.py --mode serve                    # Kafka consumer
+python -m src.kafka.producer --simulate 10 5   # Simulated producer
+5. Full Pipeline Trigger
+
+
+
+python main.py --mode kafka-pipeline           # Run scraper → Kafka pipeline
+python amazon_scraper.py --send-to-kafka       # Manual sending
+⚙️ Configuration Overview
+Configuration is handled via config/config.yaml:
+
+yaml
+
+
+kafka:
+  bootstrap_servers: "localhost:39092"
+  topic: "amazon_reviews"
+  group_id: "review_detector"
+
+model:
+  input_features: 5000
+  hidden_layers: [512, 256, 128, 64]
+  dropout_rates: [0.2, 0.2, 0.2, 0.1]
+  learning_rate: 0.0005
+  batch_size: 32
+  epochs: 100
+  early_stopping_patience: 10
+  use_batch_normalization: true
+  use_class_weights: true
+🗂️ Folder Layout
+
+
+
+├── Data/
+│   ├── Scraped_data/         # Review data from Amazon
+│   ├── Training_data/        # Final training sets
+│   ├── Testing_data/         # Holdout test data
+│
+├── config/
+│   └── config.yaml
+│
+├── models/                   # Saved models
+├── results/                  # Evaluation output
+│   ├── training/
+│   ├── testing/
+│   └── real_time_predictions.csv
+│
+├── src/
+│   ├── kafka/
+│   │   ├── consumer.py
+│   │   └── producer.py
+│   ├── processing/
+│   │   └── data_preprocessing.py
+│   └── utils/
+│       └── logger.py
+│
+├── amazon_scraper.py
+├── combine_datasets.py
+├── docker-compose.yml
+├── main.py
+└── requirements.txt
+📈 Evaluation Dashboard
+After model runs, the system automatically generates metrics:
+
+Accuracy, Precision, Recall, F1-score
+
+Class-specific metrics (Original vs. Generated reviews)
+
+Visual reports:
+
+Confusion matrix
+
+Probability histograms
+
+Label distribution pie charts
+
+Performance summary bar plots
+
+Optional HTML summary report with embedded charts
+
+Generate manually via:
+
+
+
+
+python src/evaluation.py
+python src/evaluation.py --threshold 0.9 --set-labels --output results/custom_eval
+📊 Output Samples
+results/testing/test_results.csv: Final prediction labels with probabilities
+
+results/training/roc_curves_ieee.png: ROC curves
+
+results/training/feature_importance_ieee.png: Feature importance plot
+
+results/evaluation/report.html: Full evaluation summary
+
+📌 Highlights
+Model ensemble reduces overfitting
+
+Dropout and batch norm improve stability
+
+Live data labeling with Kafka
+
+Feature name consistency fixed across pipeline
+
+Clean folder organization for training vs. testing
