@@ -1,96 +1,100 @@
-Amazon Review Authenticity Detector
+# 🛡️ Amazon Review Authenticity Detector
+
 A complete machine learning system built to identify potentially AI-generated or inauthentic reviews on Amazon using deep learning and real-time Kafka pipelines.
 
-🧱 System Overview
+---
+
+## 🧱 System Overview
+
 This project follows a two-phase pipeline architecture for review scraping, feature extraction, and fraud detection:
 
-📦 Phase 1 – Batch Data Ingestion & Model Training
-Data Collection: Scrapes reviews via Amazon Scraper (Apify API) using ASINs
+### 📦 Phase 1 – Batch Data Ingestion & Model Training
 
-Preprocessing: Cleans and converts raw JSON reviews into structured data
+- **Data Collection**: Scrapes reviews via Amazon Scraper (Apify API) using ASINs  
+- **Preprocessing**: Cleans and converts raw JSON reviews into structured data  
+- **Feature Engineering**: TF-IDF vectors + linguistic signals  
+- **Model Training**: Trains classifiers (Neural Networks, XGBoost, Random Forest)  
+- **Offline Evaluation**: Evaluates models on static test data  
 
-Feature Engineering: TF-IDF vectors + linguistic signals
+### 🔄 Phase 2 – Real-time Stream Processing with Kafka
 
-Model Training: Trains various classifiers including Neural Networks, XGBoost, and Random Forest
+- **Streaming Setup**: Kafka handles real-time review ingestion  
+- **Live Feature Extraction**: Extracts features on-the-fly  
+- **Online Prediction**: Applies ensemble models to streamed reviews  
+- **Live Feedback**: Stores prediction confidence and metrics  
 
-Offline Evaluation: Evaluates all models on static test data
+---
 
-🔄 Phase 2 – Real-time Stream Processing with Kafka
-Streaming Setup: Kafka handles real-time review ingestion
+## 🔍 Key Capabilities
 
-Live Feature Extraction: Extracts features on-the-fly
+### ⚙️ Smart Preprocessing
 
-Online Prediction: Applies trained ensemble models to streamed reviews
+- Custom n-gram TF-IDF vectorizer  
+- Filler and repetitive term filtering  
+- Vocabulary richness, writing complexity, sentiment shift detection  
+- Dataset balancing and augmentation  
 
-Live Feedback: Stores prediction confidence and metrics for monitoring
+### 🤖 Modular Model Design
 
-🔍 Key Capabilities
-⚙️ Smart Preprocessing
-Custom n-gram TF-IDF vectorizer
+- Deep neural network: 512 → 256 → 128 → 64  
+- Batch norm + dropout for stability  
+- Class-weighted loss  
+- Early stopping and model checkpointing  
+- Optional model ensembling  
 
-Filters noise and filler terms
+### ⚡ Real-time Review Monitoring
 
-Measures vocabulary richness, writing complexity, sentiment shift
+- Kafka-powered streaming pipeline  
+- Live review scoring and confidence tracking  
+- JSON-ready output for dashboards  
+- Configurable consumer-producer architecture  
 
-Supports dataset balancing and augmentation
+---
 
-🤖 Modular Model Design
-Deep neural architecture: 512 → 256 → 128 → 64
+## 🚀 How to Use
 
-Integrated dropout and batch norm layers
+### 1. Setup the Environment
 
-Uses weighted loss for class imbalance
-
-Early stopping and checkpointing enabled
-
-Ensemble support to boost generalization
-
-⚡ Real-time Review Monitoring
-Kafka-based live data ingestion
-
-Real-time review scoring and labeling
-
-Dashboard-ready JSON outputs
-
-Modular Kafka consumer/producer logic
-
-🚀 How to Use
-1. Setup the Environment
-
-
-
+```bash
 pip install -r requirements.txt
-docker-compose up -d  # Starts Kafka, Zookeeper, etc.
-2. Collect & Train (Phase 1)
+docker-compose up -d
+```
 
+### 2. Collect & Train (Phase 1)
 
+```bash
+python main.py --mode train --run-scraper
+python main.py --mode train
+```
 
-python main.py --mode train --run-scraper      # Scrape and train
-python main.py --mode train                    # Only training
-3. Evaluate Model Performance
+### 3. Evaluate Model Performance
 
-
-
+```bash
 python main.py --mode test
-python main.py --mode test --run-scraper       # Test on new scraped data
-4. Real-time Pipeline (Phase 2)
+python main.py --mode test --run-scraper
+```
 
+### 4. Real-time Pipeline (Phase 2)
 
+```bash
+python main.py --mode serve
+python -m src.kafka.producer --simulate 10 5
+```
 
-python main.py --mode serve                    # Kafka consumer
-python -m src.kafka.producer --simulate 10 5   # Simulated producer
-5. Full Pipeline Trigger
+### 5. Full Pipeline Trigger
 
+```bash
+python main.py --mode kafka-pipeline
+python amazon_scraper.py --send-to-kafka
+```
 
+---
 
-python main.py --mode kafka-pipeline           # Run scraper → Kafka pipeline
-python amazon_scraper.py --send-to-kafka       # Manual sending
-⚙️ Configuration Overview
-Configuration is handled via config/config.yaml:
+## ⚙️ Configuration Overview
 
-yaml
+All key parameters are stored in `config/config.yaml`:
 
-
+```yaml
 kafka:
   bootstrap_servers: "localhost:39092"
   topic: "amazon_reviews"
@@ -106,20 +110,23 @@ model:
   early_stopping_patience: 10
   use_batch_normalization: true
   use_class_weights: true
-🗂️ Folder Layout
+```
 
+---
 
+## 🗂️ Folder Layout
 
+```
 ├── Data/
-│   ├── Scraped_data/         # Review data from Amazon
-│   ├── Training_data/        # Final training sets
-│   ├── Testing_data/         # Holdout test data
+│   ├── Scraped_data/
+│   ├── Training_data/
+│   ├── Testing_data/
 │
 ├── config/
 │   └── config.yaml
 │
-├── models/                   # Saved models
-├── results/                  # Evaluation output
+├── models/
+├── results/
 │   ├── training/
 │   ├── testing/
 │   └── real_time_predictions.csv
@@ -138,48 +145,73 @@ model:
 ├── docker-compose.yml
 ├── main.py
 └── requirements.txt
-📈 Evaluation Dashboard
-After model runs, the system automatically generates metrics:
+```
 
-Accuracy, Precision, Recall, F1-score
+---
 
-Class-specific metrics (Original vs. Generated reviews)
+## 📈 Evaluation Dashboard
 
-Visual reports:
+After training, the system can generate performance metrics and visualizations:
 
-Confusion matrix
+- Accuracy, Precision, Recall, F1-score  
+- Class-level metrics for Original (OR) vs AI-generated (CG) reviews  
+- Visuals:
+  - Confusion matrix  
+  - Probability distribution histograms  
+  - Class pie charts  
+  - ROC curves  
+  - Feature importance graphs  
 
-Probability histograms
+### Run Evaluation
 
-Label distribution pie charts
-
-Performance summary bar plots
-
-Optional HTML summary report with embedded charts
-
-Generate manually via:
-
-
-
-
+```bash
 python src/evaluation.py
 python src/evaluation.py --threshold 0.9 --set-labels --output results/custom_eval
-📊 Output Samples
-results/testing/test_results.csv: Final prediction labels with probabilities
+```
 
-results/training/roc_curves_ieee.png: ROC curves
+---
 
-results/training/feature_importance_ieee.png: Feature importance plot
+## 📊 Output Samples
 
-results/evaluation/report.html: Full evaluation summary
+- `results/testing/test_results.csv`: Final prediction results  
+- `results/training/roc_curves_ieee.png`: ROC curves  
+- `results/training/feature_importance_ieee.png`: Feature importance  
+- `results/evaluation/report.html`: Full HTML summary  
 
-📌 Highlights
-Model ensemble reduces overfitting
+---
 
-Dropout and batch norm improve stability
+## 📌 Highlights
 
-Live data labeling with Kafka
+- Ensemble logic boosts prediction reliability  
+- Dropout and batch norm help stable training  
+- Apache Kafka enables real-time detection  
+- Data and results folders kept clean and organized  
+- Feature naming consistency handled for training/inference compatibility  
 
-Feature name consistency fixed across pipeline
+---
 
-Clean folder organization for training vs. testing
+## 🛠️ Troubleshooting
+
+### Docker Port Conflicts
+
+If you see something like:
+
+```
+Bind for 0.0.0.0:32181 failed: port is already allocated
+```
+
+Fix it by either:
+
+```bash
+lsof -i :32181
+kill -9 <PID>
+docker-compose up -d --remove-orphans
+```
+
+Or update ports in `docker-compose.yml`.
+
+---
+
+## ⚠️ Disclaimer
+
+This project is meant purely for educational and research purposes. Please follow Amazon’s terms of service and applicable laws when using any scraping tools or automated methods.
